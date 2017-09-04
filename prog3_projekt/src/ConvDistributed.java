@@ -92,6 +92,8 @@ public class ConvDistributed {
         int bluesum = 0;
 
 
+
+        //change
         int[] temparray = new int[9];
 
 
