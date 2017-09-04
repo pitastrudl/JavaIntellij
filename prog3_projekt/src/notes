@@ -1,0 +1,52 @@
+ spravil sliko v buffered image, zdaj treba spravit v matriko
+  mamo vse v signed integer pixel. 
+ dal vse v posebi funkcije
+ naredil funkcijo za spremembo arraja
+  naredit nov object za file
+  v ta nov object file pac naredit sliko
+  jo zapisat v fajl 
+  naredil da dodal se en listener za exit, da se zapira, moras se dajat argumente okno, dase ve. 
+
+
+  todo:
+iz filedialog sharnit v buffered image
+handlat edge, kaj je najbolje.
+smiselno uredit classe pa metode, da je bolj urejeno
+optimizirat kodo, je bolje kje delati z objekti ali kar delat na roke pretvarjat pa to.
+testirat vse razlicne slike in matrke.
+testirat vse skupaj, da se naredi kako statistkiko al nkei.
+mogoče probat dat celo sliko v array in se dela z arrayem?
+
+notes:  
+  Mam gui za vse skup, da se testira, odpre home direktorij
+  kaj je fora awt ali pa swig?
+  Prvo nasploh je blo vprašanje kako dobit sliko. Sem sliko prvo bral iz direktorija in shranjeval v 
+  2d array in potem probal spreminjat ampak ne gre tako dobro, zato sem potem takoj samo porabil metodo 
+  za delat z buffered image. 
+
+
+  opis algoritma itd.
+  problem je biu da ko sem dal getrbg je dal neke cudne inte in to je sliko rip naredil.  
+  
+  problem je biu da sem delal spet z temi integerji in ko sem mel minus pa delal edge, je bil potem rip, ker minus pa minus
+  sam zakaj pa nevem.
+  
+  potem sem ugotovil da je bolje delat z rgb posebi kot en sam integer ker je zapisan tako.
+  
+  problem je biu tudi da pri enih kot je edge detection je bil problem da niso bili normalizirane vsote in je bilo nekaj vecje
+  kot 255 ali pa manjse od 0 in sem moral normalzirat. nevem kje se to zgodi. mogoče ker so negativne vrednosti in so take matrike.
+
+  problem sem mel tudi, newimg = img, fml. Dela zdaj vse.
+  
+  sem probal zdaj vzporedno z threadpooli, dela malo hitreje, sem razdelil na n (height) threadov pa 4 threade na voljo.
+  prej ni delal, ker je bil
+   newimg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB); na
+   BufferedImage  newimg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
+
+
+
+ //porazdeljeno
+
+ pac za porazdeljeno dobimo sliko
+  
+  
