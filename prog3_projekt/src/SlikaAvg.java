@@ -1,9 +1,11 @@
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+
 import java.awt.image.*;
 import java.awt.*;
 import javax.imageio.*;
+
+import com.sun.deploy.util.SystemUtils;
 import mpi.*;
 
 public class SlikaAvg {
@@ -34,8 +36,11 @@ public class SlikaAvg {
         if (id == 0){
 
             try {
-
-                 image = ImageIO.read(new File("/home/arun/hamburg.jpg"));
+                if (System.getProperty("os.name").startsWith("Windows")){
+                    image = ImageIO.read(new File("C:\\Users\\Arun\\hamburg.jpg"));
+                }else {
+                    image = ImageIO.read(new File("/home/arun/hamburg.jpg"));
+                }
                 System.out.println("trying");
 
             } catch (IOException e) {

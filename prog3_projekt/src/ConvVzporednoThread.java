@@ -18,14 +18,17 @@ public class ConvVzporednoThread extends Thread {
             polje[i].nitId = i;
         }
 
-        for (int i = 1; i < polje.length ; i++) {
+        for (int i = 1; i < polje.length; i++) {
             polje[i].start();
         }
 
         for (int i = 1; i < polje.length; i++) {
-            try { polje[i].join();
+            try {
+                polje[i].join();
 
-            } catch (InterruptedException e) { System.out.println("uuuuups"); }
+            } catch (InterruptedException e) {
+                System.out.println("uuuuups");
+            }
         }
         long end = System.currentTimeMillis();
 
@@ -33,7 +36,6 @@ public class ConvVzporednoThread extends Thread {
 
 
     }
-
 
 
     static long runtime = 0;
@@ -53,7 +55,7 @@ public class ConvVzporednoThread extends Thread {
         int j = nitId;
 
         for (int i = 1; i < img.getWidth() - 2; i++) {
-                //System.out.println(i + " - "+j );
+            //System.out.println(i + " - "+j );
 
             try {
 
@@ -73,55 +75,52 @@ public class ConvVzporednoThread extends Thread {
                 }
 
             } catch (ArrayIndexOutOfBoundsException e) {
-                System.out.println("OUTOB: " + i + " - "+j );
+                System.out.println("OUTOB: " + i + " - " + j);
             }
 
-                for (int k = 0; k < temparray.length; k++) {
+            for (int k = 0; k < temparray.length; k++) {
 
-                    try {
-                        redsum += temparray[k].getRed() * mat[k];
-                        greensum += temparray[k].getGreen() * mat[k];
-                        bluesum += temparray[k].getBlue() * mat[k];
+                try {
+                    redsum += temparray[k].getRed() * mat[k];
+                    greensum += temparray[k].getGreen() * mat[k];
+                    bluesum += temparray[k].getBlue() * mat[k];
 
-                    }catch (NullPointerException e){
-                        System.out.println("NULLP: : " + k );
-                    }
-
+                } catch (NullPointerException e) {
+                    System.out.println("NULLP: : " + k);
                 }
 
-                redsum /= div;
-                greensum /= div;
-                bluesum /= div;
+            }
 
-                if (redsum > 255) {
-                    redsum = 255;
-                } else if (redsum < 0) {
-                    redsum = 0;
-                }
+            redsum /= div;
+            greensum /= div;
+            bluesum /= div;
 
-                if (greensum > 255) {
-                    greensum = 255;
-                } else if (greensum < 0) {
-                    greensum = 0;
-                }
-
-                if (bluesum > 255) {
-                    bluesum = 255;
-                } else if (bluesum < 0) {
-                    bluesum = 0;
-                }
-
-                Color newpixel = new Color(redsum, greensum, bluesum);
-                newimg.setRGB(i, j, newpixel.getRGB());
-
+            if (redsum > 255) {
+                redsum = 255;
+            } else if (redsum < 0) {
                 redsum = 0;
+            }
+
+            if (greensum > 255) {
+                greensum = 255;
+            } else if (greensum < 0) {
                 greensum = 0;
+            }
+
+            if (bluesum > 255) {
+                bluesum = 255;
+            } else if (bluesum < 0) {
                 bluesum = 0;
             }
+
+            Color newpixel = new Color(redsum, greensum, bluesum);
+            newimg.setRGB(i, j, newpixel.getRGB());
+
+            redsum = 0;
+            greensum = 0;
+            bluesum = 0;
         }
-
-
-
+    }
 
 
     public static void convulate2(int[] mat, int div) {
@@ -166,7 +165,7 @@ public class ConvVzporednoThread extends Thread {
             System.out.println("trying");
 
 			/*
-			 * ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+             * ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
 			 * ColorConvertOp op = new ColorConvertOp(cs, null); BufferedImage
 			 * image = op.filter(img, null);
 			 */
