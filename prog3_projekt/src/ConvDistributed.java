@@ -105,13 +105,15 @@ public class ConvDistributed {
                 //imagewidth is 2x becuase its the center, you can do the traversal in 3 different ways anyways.
 
                 //for loop zunanji poveca vsakic?
-            for (int i = 1;i <= (imageheight /3) ;i++){
+
+                //onemogocit ce je imagehit mansji od 3 da se ustavi.
+            for (int i = 1;i <= (imageheight / size) ;i++){
+
                 for (int j = (imagewidth)*i; j <= (imagewidth * 2 - 1)*i; j++) {
 
                     temparray[0] = vrstica[(j - imagewidth) - 1];
                     temparray[1] = vrstica[(j - imagewidth)];
                     temparray[2] = vrstica[(j - imagewidth) + 1];
-
                     temparray[3] = vrstica[j - 1];
                     temparray[4] = vrstica[j];
                     temparray[5] = vrstica[j + 1];
@@ -159,7 +161,6 @@ public class ConvDistributed {
                     greensum = 0;
                     bluesum = 0;
 
-
                 }
             }
 
@@ -168,6 +169,7 @@ public class ConvDistributed {
                 System.out.println("out of bounds");
             }
 
+            //racunamo skp?
 
             //racunamo avg
             //dobimo ze nafilano vrsitco z vrednostimi, sklepamo da to nafila scatter.
@@ -185,6 +187,7 @@ public class ConvDistributed {
             b = b / vrstica.length;
 
             int[] zapakirano = new int[1];
+
             zapakirano[0] = new Color(r, g, b).getRGB();
 
             int[] zdruzeno = new int[size];
@@ -199,6 +202,7 @@ public class ConvDistributed {
             b = 0;
 
             for (int i = 0; i < zdruzeno.length; i++) {
+
                 Color c = new Color(zdruzeno[i]);
                 r += c.getRed();
                 g += c.getGreen();

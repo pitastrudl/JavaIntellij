@@ -5,7 +5,7 @@ import java.awt.image.*;
 import java.awt.*;
 import javax.imageio.*;
 
-import com.sun.deploy.util.SystemUtils;
+
 import mpi.*;
 
 public class SlikaAvg {
