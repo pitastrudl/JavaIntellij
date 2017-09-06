@@ -1,4 +1,5 @@
 import mpi.MPI;
+import sun.rmi.runtime.Log;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -13,9 +14,9 @@ public class ConvDistributed {
     private static int size;
     private static int imagewidth;
     private static int imageheight;
-    private static int div;
+    private static int div=1;
     private static BufferedImage newimg = null;
-    private static int[] newarrayimage;
+
 
 
     /**
@@ -49,12 +50,11 @@ public class ConvDistributed {
                 imagewidth = image.getWidth();
                 imageheight = image.getHeight();
 
-                System.out.println("trying");
+                System.out.println("trying to get image");
 
             } catch (IOException e) {
 
             }
-
             //new image that will get written
             newimg = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 
@@ -63,21 +63,28 @@ public class ConvDistributed {
 
             //total lenght of image.
             totalLength[0] = image.getWidth() * image.getHeight();
+            System.out.println("one chunk is: " + (totalLength[0] / size) + " pixels");
+            System.out.println("Total pixels is: " + totalLength[0]);
+            System.out.println("Sum of leftover pixels: " + (totalLength[0] - ((totalLength[0] / size) * size)) );
 
             //whole image gets transferred into an array.
             slika = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-            newarrayimage = slika; //make a copy of the image
+            //newarrayimage = slika; //make a copy of the image
         }
 
 
         //whats up here? syso does not trigger here untill later, huh.
 
-        //broadcasting the total length?
+        //broadcasting the total length to the world and the other stuff.
+        int[] iw = new int[1];
+        iw[0] = imagewidth;
         MPI.COMM_WORLD.Bcast(totalLength, 0, 1, MPI.INT, 0);
+        MPI.COMM_WORLD.Bcast(iw, 0, 1, MPI.INT, 0);
 
 
         if (id != 0) {
             slika = new int[totalLength[0]]; // ceprav tega ne rabimo, moramo inicializirat, ker ce ne bo vrgu MPJ exception.
+
         }
         //System.out.println("size je: "+ size);
 
@@ -99,29 +106,42 @@ public class ConvDistributed {
 
             //change
             int[] temparray = new int[9];
+            imagewidth = iw[0];
 
+            //temp buffer
+            int[] newarrayimage =  new int[vrstica.length];
+            System.out.println("imagewidth: " + imagewidth);
 
-            try {
                 //imagewidth is 2x becuase its the center, you can do the traversal in 3 different ways anyways.
 
-                //for loop zunanji poveca vsakic?
+                //for loop outside always increases size for 2
 
                 //onemogocit ce je imagehit mansji od 3 da se ustavi.
-            for (int i = 1;i <= (imageheight / size) ;i++){
+            int stev = 0;
 
-                for (int j = (imagewidth)*i; j <= (imagewidth * 2 - 1)*i; j++) {
+            for (int i = 1;i <= vrstica.length / imagewidth ;i++){
 
-                    temparray[0] = vrstica[(j - imagewidth) - 1];
-                    temparray[1] = vrstica[(j - imagewidth)];
-                    temparray[2] = vrstica[(j - imagewidth) + 1];
-                    temparray[3] = vrstica[j - 1];
-                    temparray[4] = vrstica[j];
-                    temparray[5] = vrstica[j + 1];
+                for (int j = 1 ; j <= imagewidth - 2; j++) {  //+1 at the start so its not out of bounds, -2 also
+                    //notrani for loop bi moral biti vredu
+                    try{
 
-                    temparray[3] = vrstica[(j + imagewidth) * 2 - 1];
-                    temparray[4] = vrstica[(j + imagewidth) * 2];
-                    temparray[5] = vrstica[(j + imagewidth) * 2 + 1];
+                    temparray[0] = vrstica[(j-1)];
+                    temparray[1] = vrstica[(j)];
+                    temparray[2] = vrstica[(j+1)];
 
+                    temparray[3] = vrstica[j + (imagewidth * i) - 1];
+                    temparray[4] = vrstica[j + (imagewidth * i)];
+                    temparray[5] = vrstica[j + (imagewidth * i) + 1];
+
+                    temparray[3] = vrstica[j + (imagewidth * 2 * i) - 1];
+                    temparray[4] = vrstica[j + (imagewidth * 2 * i)];
+                    temparray[5] = vrstica[j + (imagewidth * 2 + 1) + 1];
+
+                    } catch (IndexOutOfBoundsException e) {
+
+                        System.out.println("Worker " + id+ " out of bounds: " + stev);
+                        stev++;
+                    }
 
                     for (int k = 0; k < temparray.length; k++) {
                         Color tempColor = new Color(temparray[k]);
@@ -129,6 +149,8 @@ public class ConvDistributed {
                         greensum = tempColor.getGreen();
                         bluesum = tempColor.getBlue();
                     }
+
+                    //int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
                     redsum /= div;
                     greensum /= div;
                     bluesum /= div;
@@ -154,8 +176,15 @@ public class ConvDistributed {
                     Color newpixel = new Color(redsum, greensum, bluesum);
 
                     //treba dat zdruzeno al neki tuki?
-                    newarrayimage[j] = newpixel.getRGB();
-                    //newimg.setRGB(i, j, newpixel.getRGB());
+                    try{
+                        newarrayimage[j] = newpixel.getRGB();
+                    }
+                    catch (IndexOutOfBoundsException e) {
+
+                        //System.out.println("out of bounds");
+                    }
+
+
 
                     redsum = 0;
                     greensum = 0;
@@ -164,14 +193,81 @@ public class ConvDistributed {
                 }
             }
 
-            } catch (IndexOutOfBoundsException e) {
+            /*
+            for (int i = 1;i <= (imageheight / size);i++){
 
-                System.out.println("out of bounds");
+                for (int j = (imagewidth)*i + 1 ; j <= (imagewidth * 2 - 1)*i; j++) {  //+1 at the start so its not out of bounds
+                    try {
+                    temparray[0] = vrstica[(j - imagewidth) - 1];
+                    temparray[1] = vrstica[(j - imagewidth)];
+                    temparray[2] = vrstica[(j - imagewidth) + 1];
+
+                    temparray[3] = vrstica[j - 1];
+                    temparray[4] = vrstica[j];
+                    temparray[5] = vrstica[j + 1];
+
+                    temparray[3] = vrstica[(j + imagewidth) * 2 - 1];
+                    temparray[4] = vrstica[(j + imagewidth) * 2];
+                    temparray[5] = vrstica[(j + imagewidth) * 2 + 1];
+                    } catch (IndexOutOfBoundsException e) {
+
+                        //System.out.println("out of bounds: " + stev);
+                        stev++;
+                    }
+
+                    for (int k = 0; k < temparray.length; k++) {
+                        Color tempColor = new Color(temparray[k]);
+                        redsum = tempColor.getRed();
+                        greensum = tempColor.getGreen();
+                        bluesum = tempColor.getBlue();
+                    }
+
+                    redsum /= div;
+                    greensum /= div;
+                    bluesum /= div;
+
+                    if (redsum > 255) {
+                        redsum = 255;
+                    } else if (redsum < 0) {
+                        redsum = 0;
+                    }
+
+                    if (greensum > 255) {
+                        greensum = 255;
+                    } else if (greensum < 0) {
+                        greensum = 0;
+                    }
+
+                    if (bluesum > 255) {
+                        bluesum = 255;
+                    } else if (bluesum < 0) {
+                        bluesum = 0;
+                    }
+
+                    Color newpixel = new Color(redsum, greensum, bluesum);
+
+                    //treba dat zdruzeno al neki tuki?
+                    try{
+                        newarrayimage[j] = newpixel.getRGB();
+                    }
+                    catch (IndexOutOfBoundsException e) {
+
+                        //System.out.println("out of bounds");
+                    }
+
+
+
+                    redsum = 0;
+                    greensum = 0;
+                    bluesum = 0;
+
+                }
             }
+            */
+
 
             //racunamo skp?
 
-            //racunamo avg
             //dobimo ze nafilano vrsitco z vrednostimi, sklepamo da to nafila scatter.
             int r = 0, g = 0, b = 0;
             for (int i = 0; i < vrstica.length; i++) {
@@ -186,33 +282,16 @@ public class ConvDistributed {
             g = g / vrstica.length;
             b = b / vrstica.length;
 
-            int[] zapakirano = new int[1];
 
-            zapakirano[0] = new Color(r, g, b).getRGB();
 
-            int[] zdruzeno = new int[size];
+        int[] zdruzeno = new int[totalLength[0]];
 
 
         ////////////////////////////////////////////////////////////////
-        MPI.COMM_WORLD.Gather(zapakirano, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
+        MPI.COMM_WORLD.Gather(newarrayimage, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
 
-        if (id == 0) {
-            r = 0;
-            g = 0;
-            b = 0;
+        if (id == 0) { //zdruzevalni del.
 
-            for (int i = 0; i < zdruzeno.length; i++) {
-
-                Color c = new Color(zdruzeno[i]);
-                r += c.getRed();
-                g += c.getGreen();
-                b += c.getBlue();
-            }
-            r = r / zdruzeno.length;
-            g = g / zdruzeno.length;
-            b = b / zdruzeno.length;
-
-            System.out.println("Rdeca: " + r + " Zelena: " + g + " Plava: " + b);
         }
 
         //konec

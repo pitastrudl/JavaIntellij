@@ -92,9 +92,11 @@ public class SlikaAvg {
         g = g / vrstica.length;
         b = b / vrstica.length;
 
+        //save result from slave worker
         int[] zapakirano = new int[1];
         zapakirano[0] = new Color(r, g, b).getRGB();
 
+        //size of buffer to send back?
         int[] zdruzeno = new int[size];
 
         MPI.COMM_WORLD.Gather(zapakirano, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
