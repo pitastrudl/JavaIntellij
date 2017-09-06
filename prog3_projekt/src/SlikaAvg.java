@@ -97,7 +97,7 @@ public class SlikaAvg {
         zapakirano[0] = new Color(r, g, b).getRGB();
 
         //size of buffer to send back?
-        int[] zdruzeno = new int[size];
+        int[] zdruzeno = new int[size]; //empty
 
         MPI.COMM_WORLD.Gather(zapakirano, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
 

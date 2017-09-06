@@ -4,6 +4,7 @@ import sun.rmi.runtime.Log;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 
@@ -97,7 +98,6 @@ public class ConvDistributed {
         MPI.COMM_WORLD.Scatter(slika, 0, vrstica.length, MPI.INT, vrstica, 0, vrstica.length, MPI.INT, 0);
 
 
-
             //here the computing starts
             int redsum = 0;
             int greensum = 0;
@@ -143,14 +143,15 @@ public class ConvDistributed {
                         stev++;
                     }
 
+                    int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
                     for (int k = 0; k < temparray.length; k++) {
                         Color tempColor = new Color(temparray[k]);
-                        redsum = tempColor.getRed();
-                        greensum = tempColor.getGreen();
-                        bluesum = tempColor.getBlue();
+                        redsum = tempColor.getRed() * matEdge[k];
+                        greensum = tempColor.getGreen()* matEdge[k];
+                        bluesum = tempColor.getBlue()* matEdge[k];
                     }
 
-                    //int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
+
                     redsum /= div;
                     greensum /= div;
                     bluesum /= div;
@@ -181,10 +182,8 @@ public class ConvDistributed {
                     }
                     catch (IndexOutOfBoundsException e) {
 
-                        //System.out.println("out of bounds");
+                        System.out.println("writing new image: out of bounds");
                     }
-
-
 
                     redsum = 0;
                     greensum = 0;
@@ -193,7 +192,30 @@ public class ConvDistributed {
                 }
             }
 
-            /*
+        int[] zdruzeno = new int[totalLength[0]];
+
+        ////////////////////////////////////////////////////////////////
+        MPI.COMM_WORLD.Gather(newarrayimage, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
+
+        if (id == 0) { //zdruzevalni del.
+
+            System.out.println("zdrzueno: " + zdruzeno.length);
+            int w = imagewidth;
+            int h = imageheight;
+            System.out.println("w " + w + " h " + h + " newarray: " + newarrayimage.length);
+            BufferedImage writeImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+
+           writeImage.setRGB(0,0,w,h,zdruzeno,0,w*h);
+
+        }
+
+        //konec
+        MPI.Finalize();
+    }
+}
+
+
+ /*
             for (int i = 1;i <= (imageheight / size);i++){
 
                 for (int j = (imagewidth)*i + 1 ; j <= (imagewidth * 2 - 1)*i; j++) {  //+1 at the start so its not out of bounds
@@ -264,41 +286,3 @@ public class ConvDistributed {
                 }
             }
             */
-
-
-            //racunamo skp?
-
-            //dobimo ze nafilano vrsitco z vrednostimi, sklepamo da to nafila scatter.
-            int r = 0, g = 0, b = 0;
-            for (int i = 0; i < vrstica.length; i++) {
-                //System.out.println(vrstica[i]);
-                Color c = new Color(vrstica[i]);
-                r += c.getRed();
-                g += c.getGreen();
-                b += c.getBlue();
-            }
-
-            r = r / vrstica.length;
-            g = g / vrstica.length;
-            b = b / vrstica.length;
-
-
-
-        int[] zdruzeno = new int[totalLength[0]];
-
-
-        ////////////////////////////////////////////////////////////////
-        MPI.COMM_WORLD.Gather(newarrayimage, 0, 1, MPI.INT, zdruzeno, 0, 1, MPI.INT, 0);
-
-        if (id == 0) { //zdruzevalni del.
-
-        }
-
-        //konec
-        MPI.Finalize();
-    }
-
-
-}
-
-
