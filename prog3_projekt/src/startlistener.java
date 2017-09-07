@@ -505,6 +505,7 @@ public class startlistener implements ActionListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         try {
             Desktop.getDesktop().open(outputfile);
         } catch (IOException e) {
