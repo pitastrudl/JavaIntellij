@@ -137,6 +137,7 @@ public class ConvDistributed {
                     //notrani for loop bi moral biti vredu
                     try{
 
+                    //ker ne najde je treba iskat expection
                     temparray[0] = vrstica[(j-1) +imagew*i];
                     temparray[1] = vrstica[(j)+imagew*i];
                     temparray[2] = vrstica[(j+1)+imagew*i];
@@ -221,14 +222,12 @@ public class ConvDistributed {
             }
             //System.out.println(newarrayimage[i] + " "  +tempColor.getRed() +" "+ tempColor.getGreen() +" "+tempColor.getBlue());
         }
-
         int[] zdruzeno = new int[totalLength[0]];
 
         ////////////////////////////////////////////////////////////////
         MPI.COMM_WORLD.Gather(newarrayimage, 0, newarrayimage.length, MPI.INT, zdruzeno, 0, newarrayimage.length, MPI.INT, 0);
 
         if (id == 0) { //zdruzevalni del.
-
             System.out.println("zdrzueno: " + zdruzeno.length);
             int w = imagewidth;
             int h = imageheight;
@@ -238,7 +237,6 @@ public class ConvDistributed {
             for (int i = 0; i < zdruzeno.length; i++) {
                //System.out.println(zdruzeno[i]+" "+ ste);
                 ste++;
-
             }
 
             writeImage.setRGB(0,0,w,h,zdruzeno,0,w);
@@ -252,34 +250,25 @@ public class ConvDistributed {
                     System.out.println("Writing");
                     try
                     {
-
-
                         if (outputfile.exists())
                         {
                             if (Desktop.isDesktopSupported())
                             {
                                 Desktop.getDesktop().open(outputfile);
                             }
-
                             else
                             {
                                 System.out.println("File does not exists!");
                             }
-
                         }
                     }
                     catch(Exception ert)
                     {}
-
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.out.println("fail writing");
                 }
-
-
             }else {
-
-
                 try {
                     File outputfile = new File("/home/arun/convulated");
                     outputfile.getParentFile().mkdirs();
@@ -289,8 +278,6 @@ public class ConvDistributed {
                     e.printStackTrace();
                     System.out.println("fail writing");
                 }
-
-
             }
 
 
