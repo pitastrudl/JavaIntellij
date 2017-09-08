@@ -1,10 +1,10 @@
-import mpi.MPI;
-import sun.rmi.runtime.Log;
+import mpi.*;
+
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ public class ConvDistributed {
     private static int size;
     private static int imagewidth;
     private static int imageheight;
-    private static int div=9;
+    private static int div=1;
     private static BufferedImage newimg = null;
 
 
@@ -120,7 +120,7 @@ public class ConvDistributed {
 
             //temp buffer
             int[] newarrayimage =  new int[vrstica.length];
-            //newarrayimage = vrstica;
+            newarrayimage = vrstica;
             System.out.println("imagewidth: " + iw[0]);
             for (int i = 0; i < vrstica.length; i++) {
                 //System.out.println(newarrayimage[i]);
@@ -132,37 +132,47 @@ public class ConvDistributed {
                 //onemogocit ce je imagehit mansji od 3 da se ustavi.
             int stev = 0;
 
-            for (int i = 0;i <= vrstica.length / (imagew ) ;i++){
-                for (int j = 1 ; j <= imagew - 2; j++) {  //+1 at the start so its not out of bounds, -2 also
+            for (int i = 0;i <= (vrstica.length / (imagew)) ;i++){ //here you can add -3 so it goes out of bounds but that is not good.
+                for (int j = 1 ; j <= imagew ; j++) {  //+1 at the start so its not out of bounds, -2 also
                     //notrani for loop bi moral biti vredu
                     try{
 
                     //ker ne najde je treba iskat expection
-                    temparray[0] = vrstica[(j-1) +imagew*i];
-                    temparray[1] = vrstica[(j)+imagew*i];
-                    temparray[2] = vrstica[(j+1)+imagew*i];
 
-                    temparray[3] = vrstica[j + (imagew ) - 1+ imagew*i];
-                    temparray[4] = vrstica[j + (imagew )+imagew*i];
-                    temparray[5] = vrstica[j + (imagew ) + 1+imagew*i];
+                        //ena resitev je da se vzame drugo povprecje in se nekako cudno resuje al pa spremeni framework.
 
-                    temparray[6] = vrstica[j + (imagew * 2) - 1+imagew*i];
-                    temparray[7] = vrstica[j + (imagew * 2+imagew*i)];
-                    temparray[8] = vrstica[j + (imagew * 2)  + 1+imagew*i];
+                    temparray[0] = vrstica[(j-1) + (imagew*i)];
+                    temparray[1] = vrstica[(j)+ (imagew*i)];
+                    temparray[2] = vrstica[(j+1)+ (imagew*i)];
+
+                    temparray[3] = vrstica[j + (imagew ) - 1+ (imagew*i)];
+                    temparray[4] = vrstica[j + (imagew )   +  (imagew*i)];
+                    temparray[5] = vrstica[j + (imagew ) + 1+ (imagew*i)];
+
+                    temparray[6] = vrstica[j + (imagew * 2) - 1  + (imagew*i)];
+                    temparray[7] = vrstica[j + (imagew * 2)  +      (imagew*i)];
+                    temparray[8] = vrstica[j + (imagew * 2)  + 1 + (imagew*i)];
 
                     } catch (IndexOutOfBoundsException e) {
-                        System.out.println("Worker " + id+ " out of bounds: " + stev);
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ ((j+1)+ (imagew*i)));
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew ) + 1+ (imagew*i) ));
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew * 2)  + 1+imagew*i));
+
                         stev++;
                     }
 
                     int[] matBBlur = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1};
-                    //int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
+                    int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
                     for (int k = 0; k < temparray.length; k++) {
                         //System.out.print("|  id " + id + " temparray " + temparray[k] + " " + k);
                         Color tempColor = new Color(temparray[k]);
-                        redsum += tempColor.getRed() * matBBlur[k];
+                        redsum += tempColor.getRed() * matEdge[k];
+                        greensum += tempColor.getGreen()* matEdge[k];
+                        bluesum += tempColor.getBlue()* matEdge[k];
+
+                       /* redsum += tempColor.getRed() * matBBlur[k];
                         greensum += tempColor.getGreen()* matBBlur[k];
-                        bluesum += tempColor.getBlue()* matBBlur[k];
+                        bluesum += tempColor.getBlue()* matBBlur[k];*/
 
                         if (temparray[k] == 0){
                             System.out.println(k + " i: " + i + " j: "+ j);
@@ -196,15 +206,13 @@ public class ConvDistributed {
                     //treba dat zdruzeno al neki tuki?
                     try{
 
-                        //newarrayimage[(j)+imagew*i] = newpixel.getRGB();
+                        //newarrayimage[j + (imagew )   +  (imagew*i)] = newpixel.getRGB();
                        // newarrayimage[j + (imagew )+imagew*i] = newpixel.getRGB();
                         newarrayimage[j + (imagew * i)] = newpixel.getRGB();
 
                        // System.out.println("newarrayimage " + newarrayimage[j + (imagew * i)]);
-
                     }
                     catch (IndexOutOfBoundsException e) {
-
                         System.out.println("writing new image: out of bounds");
                     }
 
@@ -274,6 +282,22 @@ public class ConvDistributed {
                     outputfile.getParentFile().mkdirs();
                     ImageIO.write(writeImage, "jpg", outputfile);
                     System.out.println("Writing");
+                    try
+                    {
+                        if (outputfile.exists())
+                        {
+                            if (Desktop.isDesktopSupported())
+                            {
+                                Desktop.getDesktop().open(outputfile);
+                            }
+                            else
+                            {
+                                System.out.println("File does not exists!");
+                            }
+                        }
+                    }
+                    catch(Exception ert)
+                    {}
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.out.println("fail writing");
