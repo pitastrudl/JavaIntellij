@@ -97,11 +97,11 @@ public class startlistener implements ActionListener {
         System.out.println(System.getProperty("user.dir"));
 
         try {
-            // img = ImageIO.read(new File("C:\\Users\\Arun\\trump.jpg"));
+            img = ImageIO.read(new File("C:\\Users\\Arun\\alster.jpg"));
             // img = ImageIO.read(new File("/home/arun/akira.jpg"));
             // img = ImageIO.read(new File("/home/arun/akira.jpg"));
             //img = ImageIO.read(new File("/home/arun/akira2.jpg"));
-            img = ImageIO.read(new File("/home/arun/hamburg.jpg"));
+            //img = ImageIO.read(new File("/home/arun/hamburg.jpg"));
             System.out.println("trying");
 
 			/*
@@ -229,11 +229,12 @@ public class startlistener implements ActionListener {
 
         int times = 0;
         for (int i = 0; i < 10; i++) {
-            convVzp(matEdge,1);
+            //convVzp(matEdge,1);
             avgtime += runtime;
             System.out.println(runtime);
         }
         System.out.println(avgtime /10 );
+        convVzp(matEdge,1);
         //7537 zap
         //4696 vzp 4 threadpool
         //4476 vzp 8 threadpool
@@ -379,9 +380,10 @@ public class startlistener implements ActionListener {
         long end = System.currentTimeMillis();
         System.out.println("vzporedno ms: "  + ( end - start) );
         runtime = end - start;
-        /*
+
         // write img
-        File outputfile = new File("/home/arun/convulated");
+        File outputfile = new File("C:\\Users\\Arun\\convulated.png");
+        //File outputfile = new File("/home/arun/convulated");
         outputfile.getParentFile().mkdirs();
 
         try {
@@ -397,7 +399,7 @@ public class startlistener implements ActionListener {
 
             e.printStackTrace();
         }
-        */
+
 
 
 

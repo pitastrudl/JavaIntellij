@@ -44,8 +44,8 @@ public class ConvDistributed {
             //read file
             try {
                 if (System.getProperty("os.name").startsWith("Windows")){
-                    image = ImageIO.read(new File("C:\\Users\\Arun\\hamburg.jpg"));
-                    //image = ImageIO.read(new File("C:\\Users\\Arun\\alster.jpg"));
+                    //image = ImageIO.read(new File("C:\\Users\\Arun\\hamburg.jpg"));
+                    image = ImageIO.read(new File("C:\\Users\\Arun\\alster.jpg"));
                 }else {
                     image = ImageIO.read(new File("/home/arun/hamburg.jpg"));
                 }
@@ -85,7 +85,7 @@ public class ConvDistributed {
 
         int[] divsend = new int[1];
         divsend[0] = div;
-        MPI.COMM_WORLD.Bcast(iw, 0, 1, MPI.INT, 0);
+        MPI.COMM_WORLD.Bcast(divsend, 0, 1, MPI.INT, 0);
 
         if (id != 0) {
             slika = new int[totalLength[0]]; // ceprav tega ne rabimo, moramo inicializirat, ker ce ne bo vrgu MPJ exception.
@@ -103,34 +103,24 @@ public class ConvDistributed {
             int redsum = 0;
             int greensum = 0;
             int bluesum = 0;
-            int r = 0;
-            int g= 0;
-            int b= 0;
-
-            //check if it gets vrstica stuff
-            for (int i = 0; i < vrstica.length; i++) {
-                //System.out.println(vrstica[i]);
-            }
 
             //change
             int[] temparray = new int[9];
             int imagew = iw[0];
-
             int divrecv = divsend[0];
+            int stev = 0;
 
+            System.out.println("divsend: " + divrecv);
             //temp buffer
             int[] newarrayimage =  new int[vrstica.length];
             newarrayimage = vrstica;
             System.out.println("imagewidth: " + iw[0]);
-            for (int i = 0; i < vrstica.length; i++) {
-                //System.out.println(newarrayimage[i]);
-                //System.out.println(vrstica[i]);
-            }
+
 
                 //imagewidth is 2x becuase its the center, you can do the traversal in 3 different ways anyways.
                 //for loop outside always increases size for 2
                 //onemogocit ce je imagehit mansji od 3 da se ustavi.
-            int stev = 0;
+
 
             for (int i = 0;i <= (vrstica.length / (imagew)) ;i++){ //here you can add -3 so it goes out of bounds but that is not good.
                 for (int j = 1 ; j <= imagew ; j++) {  //+1 at the start so its not out of bounds, -2 also
@@ -141,6 +131,7 @@ public class ConvDistributed {
 
                         //ena resitev je da se vzame drugo povprecje in se nekako cudno resuje al pa spremeni framework.
 
+                        //maybe write the whole 9 locations into newarrayimage.
                     temparray[0] = vrstica[(j-1) + (imagew*i)];
                     temparray[1] = vrstica[(j)+ (imagew*i)];
                     temparray[2] = vrstica[(j+1)+ (imagew*i)];
@@ -150,22 +141,22 @@ public class ConvDistributed {
                     temparray[5] = vrstica[j + (imagew ) + 1+ (imagew*i)];
 
                     temparray[6] = vrstica[j + (imagew * 2) - 1  + (imagew*i)];
-                    temparray[7] = vrstica[j + (imagew * 2)  +      (imagew*i)];
+                    temparray[7] = vrstica[j + (imagew * 2)  +    (imagew*i)];
                     temparray[8] = vrstica[j + (imagew * 2)  + 1 + (imagew*i)];
 
                     } catch (IndexOutOfBoundsException e) {
                         System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ ((j+1)+ (imagew*i)));
                         System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew ) + 1+ (imagew*i) ));
                         System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew * 2)  + 1+imagew*i));
-
                         stev++;
                     }
 
                     int[] matBBlur = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1};
                     int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
                     for (int k = 0; k < temparray.length; k++) {
-                        //System.out.print("|  id " + id + " temparray " + temparray[k] + " " + k);
+                        //System.out.print(" temparray " + temparray[k] + " " + k);
                         Color tempColor = new Color(temparray[k]);
+
                         redsum += tempColor.getRed() * matEdge[k];
                         greensum += tempColor.getGreen()* matEdge[k];
                         bluesum += tempColor.getBlue()* matEdge[k];
@@ -174,9 +165,6 @@ public class ConvDistributed {
                         greensum += tempColor.getGreen()* matBBlur[k];
                         bluesum += tempColor.getBlue()* matBBlur[k];*/
 
-                        if (temparray[k] == 0){
-                            System.out.println(k + " i: " + i + " j: "+ j);
-                        }
                     }
 
                     //System.out.println("");
@@ -204,11 +192,13 @@ public class ConvDistributed {
                     Color newpixel = new Color(redsum, greensum, bluesum);
                     //System.out.println("pixels " + " "+redsum+ " "+greensum+" "+bluesum + " div " + divrecv);
                     //treba dat zdruzeno al neki tuki?
-                    try{
+
+                    //THIS IS WHAT THE FUCK THIS -2
+                    try{ newarrayimage[j + (imagew * i) -2] = newpixel.getRGB();
 
                         //newarrayimage[j + (imagew )   +  (imagew*i)] = newpixel.getRGB();
                        // newarrayimage[j + (imagew )+imagew*i] = newpixel.getRGB();
-                        newarrayimage[j + (imagew * i)] = newpixel.getRGB();
+                        //newarrayimage[j + (imagew * i)] = newpixel.getRGB();
 
                        // System.out.println("newarrayimage " + newarrayimage[j + (imagew * i)]);
                     }
@@ -224,7 +214,7 @@ public class ConvDistributed {
             }
 
         for (int i = 0; i < newarrayimage.length; i++) {
-            Color tempColor = new Color(newarrayimage[i]);
+            //Color tempColor = new Color(newarrayimage[i]);
             if (newarrayimage[i] == 0){
                 //newarrayimage[i] = newarrayimage[i+2];
             }
