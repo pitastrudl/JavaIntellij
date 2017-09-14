@@ -33,10 +33,7 @@ public class ConvVzporednoThread extends Thread {
         long end = System.currentTimeMillis();
 
         System.out.println("vzporedno ms: " + (end - start));
-
-
     }
-
 
     static long runtime = 0;
     static BufferedImage img = null;
