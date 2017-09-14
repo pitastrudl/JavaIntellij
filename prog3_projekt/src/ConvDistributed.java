@@ -1,18 +1,24 @@
-import mpi.MPI;
+import mpi.*;
+
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+
 import java.io.File;
 import java.io.IOException;
 
 public class ConvDistributed {
+
+
     private static int id;
     private static int size;
     private static int imagewidth;
     private static int imageheight;
-    private static int div = 1;
+    private static int div=1;
     private static BufferedImage newimg = null;
+
+
 
     /**
      * @param args
@@ -28,22 +34,29 @@ public class ConvDistributed {
 
         System.out.println("jaz sem " + id + " od " + size);
 
-        int[] picture = new int[0];
+        //what?
+        int[] slika = new int[0];
         int[] totalLength = new int[1];
 
-        //first process tries to read the file. Maybe the first one does all the preparation for distributing the process
+        //first process tries to read the file. Maybe the first one does all the preparation for distribution.
         if (id == 0) {
-            try { //check OS type
-                if (System.getProperty("os.name").startsWith("Windows")) {
-                    image = ImageIO.read(new File(System.getProperty("user.home") + "\\" + "dog.jpg"));
-                } else {
-                    image = ImageIO.read(new File(System.getProperty("user.home") + "/" + "hamburg.jpg"));
+
+            //read file
+            try {
+                if (System.getProperty("os.name").startsWith("Windows")){
+                    //image = ImageIO.read(new File("C:\\Users\\Arun\\hamburg.jpg"));
+                    image = ImageIO.read(new File("C:\\Users\\Arun\\alster.jpg"));
+                }else {
+                    image = ImageIO.read(new File("/home/arun/hamburg.jpg"));
                 }
                 imagewidth = image.getWidth();
                 imageheight = image.getHeight();
-            } catch (IOException e) {
-            }
 
+                System.out.println("trying to get image");
+
+            } catch (IOException e) {
+
+            }
             //new image that will get written
             newimg = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
 
@@ -52,196 +65,316 @@ public class ConvDistributed {
 
             //total lenght of image.
             totalLength[0] = image.getWidth() * image.getHeight();
-
             System.out.println("one chunk is: " + (totalLength[0] / size) + " pixels");
             System.out.println("Total pixels is: " + totalLength[0]);
-            System.out.println("Sum of leftover pixels: " + (totalLength[0] - ((totalLength[0] / size) * size)));
+            System.out.println("Sum of leftover pixels: " + (totalLength[0] - ((totalLength[0] / size) * size)) );
 
             //whole image gets transferred into an array.
-            picture = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-
+            slika = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+            //newarrayimage = slika; //make a copy of the image
         }
 
+        //whats up here? syso does not trigger here untill later, huh.
 
         //broadcasting the total length to the world and the other stuff.
         MPI.COMM_WORLD.Bcast(totalLength, 0, 1, MPI.INT, 0);
 
-        //broadcasting the imagewidth
         int[] iw = new int[1];
         iw[0] = imagewidth;
         MPI.COMM_WORLD.Bcast(iw, 0, 1, MPI.INT, 0);
 
-        //broadcasting the divisor
         int[] divsend = new int[1];
         divsend[0] = div;
         MPI.COMM_WORLD.Bcast(divsend, 0, 1, MPI.INT, 0);
 
         if (id != 0) {
-            picture = new int[totalLength[0]]; // ceprav tega ne rabimo, moramo inicializirat, ker ce ne bo vrgu MPJ exception.
+            slika = new int[totalLength[0]]; // ceprav tega ne rabimo, moramo inicializirat, ker ce ne bo vrgu MPJ exception.
         }
+        //System.out.println("size je: "+ size);
 
         //size of vrstica is a fragment for a process
-        int[] chunk = new int[totalLength[0] / size];
-        long start = System.currentTimeMillis();
+        int[] vrstica = new int[totalLength[0] / size];
+
         ////////////////////////////////////////////////////////////////
-        MPI.COMM_WORLD.Scatter(picture, 0, chunk.length, MPI.INT, chunk, 0, chunk.length, MPI.INT, 0);
+        MPI.COMM_WORLD.Scatter(slika, 0, vrstica.length, MPI.INT, vrstica, 0, vrstica.length, MPI.INT, 0);
+        //MPI.COMM_WORLD.Scatter(slika, 0, vrstica.length, MPI.INT, vrstica, 0, vrstica.length, MPI.INT, 0);
 
-        int redsum = 0;
-        int greensum = 0;
-        int bluesum = 0;
+            //here the computing starts
+            int redsum = 0;
+            int greensum = 0;
+            int bluesum = 0;
 
-        //switching
-        int[] temparray = new int[9];
-        int imagew = iw[0];
-        int divrecv = divsend[0];
-        int stev = 0;
+            //change
+            int[] temparray = new int[9];
+            int imagew = iw[0];
+            int divrecv = divsend[0];
+            int stev = 0;
 
-        System.out.println("divsend: " + divrecv);
-        int[] newarrayimage = new int[chunk.length];
-        newarrayimage = chunk;
-        System.out.println("imagewidth: " + iw[0]);
+            System.out.println("divsend: " + divrecv);
+            //temp buffer
+            int[] newarrayimage =  new int[vrstica.length];
+            newarrayimage = vrstica;
+            System.out.println("imagewidth: " + iw[0]);
 
 
-        //imagewidth is 2x becuase its the center, you can do the traversal in 3 different ways anyways.
-        //for loop outside always increases size for 2
-        //one solution to deal with edge cases is to somehow do a partial normalization instead of using the whole 3x3 matrix
-        for (int i = 0; i <= (chunk.length / (imagew)); i++) { //here you can add -3 so it goes out of bounds but that is not good.
-            for (int j = 1; j <= imagew; j++) {  //+1 at the start so its not out of bounds, -2 also
+                //imagewidth is 2x becuase its the center, you can do the traversal in 3 different ways anyways.
+                //for loop outside always increases size for 2
+                //onemogocit ce je imagehit mansji od 3 da se ustavi.
 
-                try {
 
-                    temparray[0] = chunk[(j - 1) + (imagew * i)];
-                    temparray[1] = chunk[(j) + (imagew * i)];
-                    temparray[2] = chunk[(j + 1) + (imagew * i)];
+            for (int i = 0;i <= (vrstica.length / (imagew)) ;i++){ //here you can add -3 so it goes out of bounds but that is not good.
+                for (int j = 1 ; j <= imagew ; j++) {  //+1 at the start so its not out of bounds, -2 also
+                    //notrani for loop bi moral biti vredu
+                    try{
 
-                    temparray[3] = chunk[j + (imagew) - 1 + (imagew * i)];
-                    temparray[4] = chunk[j + (imagew) + (imagew * i)];
-                    temparray[5] = chunk[j + (imagew) + 1 + (imagew * i)];
+                    //ker ne najde je treba iskat expection
 
-                    temparray[6] = chunk[j + (imagew * 2) - 1 + (imagew * i)];
-                    temparray[7] = chunk[j + (imagew * 2) + (imagew * i)];
-                    temparray[8] = chunk[j + (imagew * 2) + 1 + (imagew * i)];
+                        //ena resitev je da se vzame drugo povprecje in se nekako cudno resuje al pa spremeni framework.
 
-                } catch (IndexOutOfBoundsException e) {
-                    System.out.println("Worker " + id + " OutOfBounds " + stev + "x : " + " j " + j + " imagew*i " + (imagew * i) + " sum " + ((j + 1) + (imagew * i)));
-                    System.out.println("Worker " + id + " OutOfBounds " + stev + "x : " + " j " + j + " imagew*i " + (imagew * i) + " sum " + (j + (imagew) + 1 + (imagew * i)));
-                    System.out.println("Worker " + id + " OutOfBounds " + stev + "x : " + " j " + j + " imagew*i " + (imagew * i) + " sum " + (j + (imagew * 2) + 1 + imagew * i));
-                    stev++;
-                }
+                        //maybe write the whole 9 locations into newarrayimage.
+                    temparray[0] = vrstica[(j-1) + (imagew*i)];
+                    temparray[1] = vrstica[(j)+ (imagew*i)];
+                    temparray[2] = vrstica[(j+1)+ (imagew*i)];
 
-                //applying the convolution matrix
-                int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
-                for (int k = 0; k < temparray.length; k++) {
-                    Color tempColor = new Color(temparray[k]);
-                    redsum += tempColor.getRed() * matEdge[k];
-                    greensum += tempColor.getGreen() * matEdge[k];
-                    bluesum += tempColor.getBlue() * matEdge[k];
-                }
+                    temparray[3] = vrstica[j + (imagew ) - 1+ (imagew*i)];
+                    temparray[4] = vrstica[j + (imagew )   +  (imagew*i)];
+                    temparray[5] = vrstica[j + (imagew ) + 1+ (imagew*i)];
 
-                //normalization
-                redsum /= divrecv;
-                greensum /= divrecv;
-                bluesum /= divrecv;
+                    temparray[6] = vrstica[j + (imagew * 2) - 1  + (imagew*i)];
+                    temparray[7] = vrstica[j + (imagew * 2)  +    (imagew*i)];
+                    temparray[8] = vrstica[j + (imagew * 2)  + 1 + (imagew*i)];
 
-                if (redsum > 255) {
-                    redsum = 255;
-                } else if (redsum < 0) {
-                    redsum = 0;
-                }
+                    } catch (IndexOutOfBoundsException e) {
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ ((j+1)+ (imagew*i)));
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew ) + 1+ (imagew*i) ));
+                        System.out.println("Worker "+id+" OutOfBounds "+stev+"x : "+" j "+j+" imagew*i "+(imagew*i)+" sum "+ (j + (imagew * 2)  + 1+imagew*i));
+                        stev++;
+                    }
 
-                if (greensum > 255) {
-                    greensum = 255;
-                } else if (greensum < 0) {
-                    greensum = 0;
-                }
+                    int[] matBBlur = new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1};
+                    int[] matEdge = new int[]{-1, -1, -1, -1, 8, -1, -1, -1, -1};
+                    for (int k = 0; k < temparray.length; k++) {
+                        //System.out.print(" temparray " + temparray[k] + " " + k);
+                        Color tempColor = new Color(temparray[k]);
 
-                if (bluesum > 255) {
-                    bluesum = 255;
-                } else if (bluesum < 0) {
-                    bluesum = 0;
-                }
+                        redsum += tempColor.getRed() * matEdge[k];
+                        greensum += tempColor.getGreen()* matEdge[k];
+                        bluesum += tempColor.getBlue()* matEdge[k];
 
-                //writing the new image
-                try {
+                       /* redsum += tempColor.getRed() * matBBlur[k];
+                        greensum += tempColor.getGreen()* matBBlur[k];
+                        bluesum += tempColor.getBlue()* matBBlur[k];*/
+
+                    }
+
+                    //System.out.println("");
+
+                    redsum /= divrecv;
+                    greensum /= divrecv;
+                    bluesum /= divrecv;
+
+                    if (redsum > 255) {
+                        redsum = 255;
+                    } else if (redsum < 0) {
+                        redsum = 0;
+                    }
+                    if (greensum > 255) {
+                        greensum = 255;
+                    } else if (greensum < 0) {
+                        greensum = 0;
+                    }
+                    if (bluesum > 255) {
+                        bluesum = 255;
+                    } else if (bluesum < 0) {
+                        bluesum = 0;
+                    }
+
                     Color newpixel = new Color(redsum, greensum, bluesum);
-                    newarrayimage[j + (imagew * i) - 2] = newpixel.getRGB();
-                } catch (IndexOutOfBoundsException e) {
-                    System.out.println("writing new image: out of bounds");
+                    //System.out.println("pixels " + " "+redsum+ " "+greensum+" "+bluesum + " div " + divrecv);
+                    //treba dat zdruzeno al neki tuki?
+
+                    //THIS IS WHAT THE FUCK THIS -2
+                    try{ newarrayimage[j + (imagew * i) -2] = newpixel.getRGB();
+
+                        //newarrayimage[j + (imagew )   +  (imagew*i)] = newpixel.getRGB();
+                       // newarrayimage[j + (imagew )+imagew*i] = newpixel.getRGB();
+                        //newarrayimage[j + (imagew * i)] = newpixel.getRGB();
+
+                       // System.out.println("newarrayimage " + newarrayimage[j + (imagew * i)]);
+                    }
+                    catch (IndexOutOfBoundsException e) {
+                        System.out.println("writing new image: out of bounds");
+                    }
+
+                    redsum = 0;
+                    greensum = 0;
+                    bluesum = 0;
+
                 }
-
-                //reset sums
-                redsum = 0;
-                greensum = 0;
-                bluesum = 0;
-
             }
-        }
 
-        int[] combined = new int[totalLength[0]];
+        for (int i = 0; i < newarrayimage.length; i++) {
+            //Color tempColor = new Color(newarrayimage[i]);
+            if (newarrayimage[i] == 0){
+                //newarrayimage[i] = newarrayimage[i+2];
+            }
+            //System.out.println(newarrayimage[i] + " "  +tempColor.getRed() +" "+ tempColor.getGreen() +" "+tempColor.getBlue());
+        }
+        int[] zdruzeno = new int[totalLength[0]];
 
         ////////////////////////////////////////////////////////////////
-        MPI.COMM_WORLD.Gather(newarrayimage, 0, newarrayimage.length, MPI.INT, combined, 0, newarrayimage.length, MPI.INT, 0);
+        MPI.COMM_WORLD.Gather(newarrayimage, 0, newarrayimage.length, MPI.INT, zdruzeno, 0, newarrayimage.length, MPI.INT, 0);
 
-        if (id == 0) { //merging part
-            System.out.println("zdrzueno: " + combined.length);
+        if (id == 0) { //zdruzevalni del.
+            System.out.println("zdrzueno: " + zdruzeno.length);
             int w = imagewidth;
             int h = imageheight;
-
             System.out.println("w " + w + " h " + h + " newarray: " + newarrayimage.length);
+            BufferedImage writeImage = new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+            int ste = 0;
+            for (int i = 0; i < zdruzeno.length; i++) {
+               //System.out.println(zdruzeno[i]+" "+ ste);
+                ste++;
+            }
 
-            BufferedImage writeImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-            writeImage.setRGB(0, 0, w, h, combined, 0, w);
+            writeImage.setRGB(0,0,w,h,zdruzeno,0,w);
+            System.out.println(writeImage.getColorModel() +""+ writeImage.getType() +""+ writeImage.getSampleModel());
 
-            System.out.println(writeImage.getColorModel() + "" + writeImage.getType() + "" + writeImage.getSampleModel());
-            long end = System.currentTimeMillis();
-            System.out.println("zaporedno ms: " + (end - start));
-            //writing the file
-            if (System.getProperty("os.name").startsWith("Windows")) {
-
+            if (System.getProperty("os.name").startsWith("Windows")){
                 try {
-                    File outputfile = new File(System.getProperty("user.home") + "\\" + "convulated.jpg");
+                    File outputfile = new File("C:\\Users\\Arun\\convulated.jpg");
                     outputfile.getParentFile().mkdirs();
                     ImageIO.write(writeImage, "jpg", outputfile);
                     System.out.println("Writing");
-                    try {
-                        if (outputfile.exists()) {
-                            if (Desktop.isDesktopSupported()) {
+                    try
+                    {
+                        if (outputfile.exists())
+                        {
+                            if (Desktop.isDesktopSupported())
+                            {
                                 Desktop.getDesktop().open(outputfile);
-                            } else {
+                            }
+                            else
+                            {
                                 System.out.println("File does not exists!");
                             }
                         }
-                    } catch (Exception ert) {
                     }
+                    catch(Exception ert)
+                    {}
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.out.println("fail writing");
                 }
-
-            } else {
+            }else {
                 try {
-                    File outputfile = new File(System.getProperty("user.home") + "/convulated.jpg");
+                    File outputfile = new File("/home/arun/convulated");
                     outputfile.getParentFile().mkdirs();
                     ImageIO.write(writeImage, "jpg", outputfile);
                     System.out.println("Writing");
-                    try {
-                        if (outputfile.exists()) {
-                            if (Desktop.isDesktopSupported()) {
+                    try
+                    {
+                        if (outputfile.exists())
+                        {
+                            if (Desktop.isDesktopSupported())
+                            {
                                 Desktop.getDesktop().open(outputfile);
-                            } else {
+                            }
+                            else
+                            {
                                 System.out.println("File does not exists!");
                             }
                         }
-                    } catch (Exception ert) {
                     }
+                    catch(Exception ert)
+                    {}
                 } catch (IOException e) {
                     e.printStackTrace();
                     System.out.println("fail writing");
                 }
             }
+
+
+
+
+
+
         }
+
         //konec
         MPI.Finalize();
     }
 }
 
+
+ /*
+            for (int i = 1;i <= (imageheight / size);i++){
+
+                for (int j = (imagewidth)*i + 1 ; j <= (imagewidth * 2 - 1)*i; j++) {  //+1 at the start so its not out of bounds
+                    try {
+                    temparray[0] = vrstica[(j - imagewidth) - 1];
+                    temparray[1] = vrstica[(j - imagewidth)];
+                    temparray[2] = vrstica[(j - imagewidth) + 1];
+
+                    temparray[3] = vrstica[j - 1];
+                    temparray[4] = vrstica[j];
+                    temparray[5] = vrstica[j + 1];
+
+                    temparray[3] = vrstica[(j + imagewidth) * 2 - 1];
+                    temparray[4] = vrstica[(j + imagewidth) * 2];
+                    temparray[5] = vrstica[(j + imagewidth) * 2 + 1];
+                    } catch (IndexOutOfBoundsException e) {
+
+                        //System.out.println("out of bounds: " + stev);
+                        stev++;
+                    }
+
+                    for (int k = 0; k < temparray.length; k++) {
+                        Color tempColor = new Color(temparray[k]);
+                        redsum = tempColor.getRed();
+                        greensum = tempColor.getGreen();
+                        bluesum = tempColor.getBlue();
+                    }
+
+                    redsum /= div;
+                    greensum /= div;
+                    bluesum /= div;
+
+                    if (redsum > 255) {
+                        redsum = 255;
+                    } else if (redsum < 0) {
+                        redsum = 0;
+                    }
+
+                    if (greensum > 255) {
+                        greensum = 255;
+                    } else if (greensum < 0) {
+                        greensum = 0;
+                    }
+
+                    if (bluesum > 255) {
+                        bluesum = 255;
+                    } else if (bluesum < 0) {
+                        bluesum = 0;
+                    }
+
+                    Color newpixel = new Color(redsum, greensum, bluesum);
+
+                    //treba dat zdruzeno al neki tuki?
+                    try{
+                        newarrayimage[j] = newpixel.getRGB();
+                    }
+                    catch (IndexOutOfBoundsException e) {
+
+                        //System.out.println("out of bounds");
+                    }
+
+
+
+                    redsum = 0;
+                    greensum = 0;
+                    bluesum = 0;
+
+                }
+            }
+            */
